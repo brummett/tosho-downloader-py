@@ -33,7 +33,6 @@ class Task(object):
             await self.flush_stdout()
             return
 
-        print(f'{self} is done')
         self.is_done = True
 
         return rv

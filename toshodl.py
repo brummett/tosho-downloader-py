@@ -47,14 +47,16 @@ async def main():
     while True:
         writer.write('waiting for input: '.encode())
         line = await reader.readline()
-        trimmed = line.decode().strip()
         if not line:
             print("Done reading input!")
             break
-        id = await tosho.search(trimmed)
-        writer.write(f"id: { id }\n".encode())
-        #task = ToshoResolver(id, trimmed)
-        #work_queue.put_nowait(task)
+        trimmed = line.decode().strip()
+        if len(trimmed) > 0:
+            id = await tosho.search(trimmed)
+            if id is not None:
+                writer.write(f'{trimmed} is id {id}\n'.encode())
+                #task = ToshoResolver(id, trimmed)
+                #work_queue.put_nowait(task)
 
     print("Out of the main loop")
 

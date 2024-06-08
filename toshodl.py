@@ -9,15 +9,25 @@ from toshodl import AsyncConsole
 
 num_workers = 5
 
+# Queue one or more tasks
+# "task" can be None to mean there's nothing to queue
+# A Task instance to queue one task
+# A list of Tasks to queue several
+def queue_tasks(queue, task):
+    if task is None:
+        pass
+    elif isinstance(task, list):
+        for t in task:
+            queue.put_nowait(t)
+    else:
+        queue.put_nowait(task)
+
 async def worker(name, work_queue):
     while True:
-        #print(f'worker {name} waiting for a task...')
         task = await work_queue.get()
-        #print(f'worker {name} got a task: { task }')
-        further_tasks = task.run()
-        if further_tasks:
-            for t in further_tasks:
-                work_queue.put_nowait(t)
+        further_tasks = await task.run()
+        queue_tasks(work_queue, further_tasks)
+
         work_queue.task_done()
 
 def setup_logging():

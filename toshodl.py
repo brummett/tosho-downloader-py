@@ -6,6 +6,7 @@ import queue
 
 from toshodl.ToshoSearch import ToshoSearch
 from toshodl import AsyncConsole
+from toshodl.Task.ToshoResolver import ToshoResolver
 
 num_workers = 5
 
@@ -31,7 +32,7 @@ async def worker(name, work_queue):
         work_queue.task_done()
 
 def setup_logging():
-    #logging.basicConfig(level=logging.INFO)
+    logging.basicConfig()  #level=logging.INFO)
 
     # Setup for asyncio
     log_queue = queue.Queue()
@@ -65,8 +66,8 @@ async def main():
             id = await tosho.search(trimmed)
             if id is not None:
                 writer.write(f'{trimmed} is id {id}\n'.encode())
-                #task = ToshoResolver(id, trimmed)
-                #work_queue.put_nowait(task)
+                task = ToshoResolver(id)
+                queue_tasks(work_queue, task)
 
     print("Out of the main loop")
 

@@ -9,8 +9,9 @@ import asyncio
 from toshodl import AsyncConsole
 
 class Printable(object):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         self.stdout = AsyncConsole.stdout()
+        super().__init__(*args, **kwargs)
 
     def print(self, msg):
         self.stdout.write(msg.encode())

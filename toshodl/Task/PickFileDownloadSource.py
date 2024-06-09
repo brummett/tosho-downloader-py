@@ -57,10 +57,8 @@ class PickFileDownloadSource(Printable, Task):
         for idx, link in enumerate(chosen_source_links, start=1):
             self.print(f'    { chosen_source }: { link }\n')
             if self.is_batch():
-                #filename = self.bundle + '/' + self.filename + '.' + str(idx)
                 filename = os.path.join(self.bundle, '%s.%03d' % ( self.filename, idx))
             else:
-                #filename = self.filename + '.' + str(idx)
                 filename = '%s.%03d' % ( self.filename, idx)
 
             # maybe don't need picker or peers?
@@ -79,7 +77,6 @@ class PickFileDownloadSource(Printable, Task):
         try:
             print(f'{ self.filename } waiting on { len(dl_tasks) } DL tasks...')
             await asyncio.gather(*dl_promises)
-            print('Done Waiting!')
         except Exception as e:
             self.print(f'There was an exception waiting for the pieces of { self.filename }: { e }\n')
             await self.flush_stdout()

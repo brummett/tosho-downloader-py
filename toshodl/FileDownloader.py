@@ -64,8 +64,6 @@ class FileDownloader(Task, Printable):
 
         await self.do_download_file(dl_url)
 
-        self.print(f'Download from { self.url } is done\n')
-         
     async def do_download_file(self, url):
         self.print(f'Downloading {self.filename} from { url }\n')
         start_time = time.time()

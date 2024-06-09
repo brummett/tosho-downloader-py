@@ -9,6 +9,7 @@ import httpx
 import sys
 import logging
 import traceback
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class Task(object):
     client = httpx.AsyncClient()
 
     def __init__(self, *args, **kwargs):
-        self.done = False
+        self.done = asyncio.get_event_loop().create_future()
         super().__init__(*args, **kwargs)
 
     async def run(self):
@@ -31,9 +32,10 @@ class Task(object):
             #logger.error(f'*** Caught { type(e) } exception in task { self }: { traceback.format_exc() }')
             self.print(f'*** Caught { type(e) } exception in task { self }: { traceback.format_exc() }')
             await self.flush_stdout()
+            self.done.set_exception(e)
             return
 
-        self.is_done = True
+        self.done.set_result(True)
 
         return rv
 

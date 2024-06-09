@@ -25,7 +25,7 @@ class PickFileDownloadSource(Printable, Task):
         # 'links' will be missing if it hasn't uploaded any pieces there yet
         self.links = { }
         for k,v in links.items():
-            if type(v) == 'list':
+            if type(v) is list:
                 self.links[k] = v
             else:
                 self.links[k] = [ v ]

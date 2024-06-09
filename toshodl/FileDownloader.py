@@ -79,16 +79,16 @@ class FileDownloader(Task, Printable):
 
         pathname = os.path.join('working', self.filename)
         dirname = os.path.dirname(pathname)
+        try:
+            os.makedirs(dirname)
+        except FileExistsError:
+            pass
+
         #with await self.make_download_request(url) as response:
         request = await self.make_download_request(url)
         try:
             response = await self.client.send(request, stream=True)
             total_size = int(response.headers['Content-Length'])
-
-            try:
-                os.makedirs(dirname)
-            except FileExistsError:
-                pass
 
             with open(pathname, 'wb') as fh:
                 with ProgressTimer(start=10, interval=30, cb=print_progress) as t:

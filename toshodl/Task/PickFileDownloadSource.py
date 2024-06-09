@@ -3,13 +3,15 @@
 # tasks to download each of the pieces
 
 import random
+import os
 
 from toshodl.Task import Task
 from toshodl.Printable import Printable
 
 # A list of classes we've imported that we can download from.
+from toshodl.Task.KrakenFilesDownloader import KrakenFilesDownloader
 download_classes = {
-    'ClickNUpload': None,
+    'KrakenFiles': KrakenFilesDownloader,
 }
 
 class PickFileDownloadSource(Printable, Task):
@@ -46,8 +48,21 @@ class PickFileDownloadSource(Printable, Task):
         chosen_source = random.choice(tuple(downloadable_sources))
         chosen_source_links = self.links[chosen_source]
         self.print(f'downloading { len(chosen_source_links) } pieces from { chosen_source } for { self.filename }\n')
+
         dl_tasks = []
-        for link in chosen_source_links:
+        chosen_source_class = download_classes[chosen_source]
+        for idx, link in enumerate(chosen_source_links, start=1):
             self.print(f'    { chosen_source }: { link }\n')
+            if self.is_batch():
+                #filename = self.bundle + '/' + self.filename + '.' + str(idx)
+                filename = os.path.join(self.bundle, '%s.%03d' % ( self.filename, idx))
+            else:
+                #filename = self.filename + '.' + str(idx)
+                filename = '%s.%03d' % ( self.filename, idx)
+
+            dl_tasks.append( chosen_source_class(url=link, filename=filename, picker=self, peers=dl_tasks) )
 
         return dl_tasks
+
+    def is_batch(self):
+        return self.bundle != self.filename

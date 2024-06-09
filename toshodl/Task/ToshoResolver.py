@@ -1,11 +1,14 @@
 # Given a tosho ID, return PickFileDownloadSource tasks for each file.  If the ID
 # is for a batch, there will be one task per file in the batch
 
-#import httpx
+import httpx
+import logging
 
 from toshodl.Task import Task
 from toshodl.Printable import Printable
 from toshodl.Task.PickFileDownloadSource import PickFileDownloadSource
+
+logger = logging.getLogger(__name__)
 
 class ToshoResolver(Printable, Task):
     base_url = 'https://feed.animetosho.org/json'
@@ -61,7 +64,7 @@ class ToshoResolver(Printable, Task):
         if data['num_files'] == 1:
             # Note that 'links' might be missing because the pieces haven't
             # been uploaded yet
-            dl_tasks = PickFileDownloadSource(bundle   = data['title'],
+            dl_tasks = PickFileDownloadSource(bundle   = data['files'][0]['filename'],
                                               filename = data['files'][0]['filename'],
                                               md5      = data['files'][0]['md5'],
                                               links    = data['files'][0].get('links', {}))

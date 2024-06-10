@@ -21,14 +21,9 @@ logger = logging.getLogger(__name__)
 
 class FileDownloader(Task, Printable):
     # url is the landing-page
-    # picker is the PickFileDownloadSource that generated us
-    # peers is a list of the other FileDownloader Tasks for all
-    #       the pieces of the file
-    def __init__(self, url, filename, peers, picker, *args, **kwargs):
+    def __init__(self, url, filename, *args, **kwargs):
         self.url = url
         self.filename = filename
-        self.picker = picker
-        self.peers = peers
         super().__init__(*args, **kwargs)
 
     def __str__(self):

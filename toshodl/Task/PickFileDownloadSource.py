@@ -62,7 +62,7 @@ class PickFileDownloadSource(Printable, Task):
                 filename = '%s.%03d' % ( self.filename, idx)
 
             # maybe don't need picker or peers?
-            dl_tasks.append( chosen_source_class(url=link, filename=filename, picker=self, peers=dl_tasks) )
+            dl_tasks.append( chosen_source_class(url=link, filename=filename) )
 
         # Join the pieces when they're all done
         asyncio.create_task(self.finalize_file(dl_tasks))

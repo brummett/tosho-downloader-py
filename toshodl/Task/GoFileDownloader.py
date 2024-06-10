@@ -1,5 +1,3 @@
-from io import BytesIO
-from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import os.path
 import re
@@ -120,8 +118,6 @@ class GoFileDownloader(FileDownloader):
         # The response indicates multiple files can be in each "folder", but Tosho only ever does one
         if json['status'] != 'ok':
             raise ValueError(f'Unexpected link data: { json }')
-        #self.print(f'{json}')
-        #await self.flush_stdout()
         if len(json['data']['children']) != 1:
             raise ValueError(f"Expected 1 'children' but got { json['data']['children'] }")
         for v in json['data']['children'].values():
@@ -134,20 +130,12 @@ class GoFileDownloader(FileDownloader):
         self.print(f'Downloading from {url}\n')
         dl_token = await self.dl_token()
 
-        # The Referer header must end in a '/'
-        #referer = url if url[-1] == '/' else url + '/'
-
         dl_headers = {
             'Authorization':    f'Bearer { dl_token }',
             'Cookie':           f'accountToken={ dl_token }',
             'Accept-Encoding':  'gzip, deflate, br',
             'Accept':           '*/*',
             'Referer':          'https://gofile.io/',
-            #'Origin':           url,
-            #'Connection':       'keep-alive',
-            #'Sec-Fetch-Dest':   'empty',
-            #'Sec-Fetch-Mode':   'cors',
-            #'Sec-Fetch-Site':   'same-site',
             'Pragma':           'no-cache',
             'Cache-Control':    'no-cache'
         }

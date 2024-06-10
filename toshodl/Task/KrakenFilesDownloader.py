@@ -14,6 +14,9 @@ class KrakenFilesDownloader(FileDownloader):
     #def __init__(self, *args, **kwargs):
     #    super().__init__(*args, **kwargs)
 
+    async def make_initial_request(self):
+        return self.client.build_request('GET', self.url)
+
     async def get_download_link(self, response):
         dom = BeautifulSoup(BytesIO(response.content), features='html.parser')
 

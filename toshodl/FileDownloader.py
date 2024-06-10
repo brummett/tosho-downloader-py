@@ -35,10 +35,10 @@ class FileDownloader(Task, Printable):
     async def do_download_request(self):
         pass
 
-    async def make_retriable_request(self, url):
+    async def make_retriable_request(self, request):
         for retries in range(5):
             try:
-                response = await self.client.get(url)
+                response = await self.client.send(request)
             except httpx.ConnectTimeout:
                 logger.warn(f'Timeout getting { url }')
                 continue
@@ -51,7 +51,8 @@ class FileDownloader(Task, Printable):
     #  * call get_download_link(response) which should return the final 
     async def task_impl(self):
         self.print(f'Trying to download from { self.url }\n')
-        response = await self.make_retriable_request(self.url)
+        request = await self.make_initial_request()
+        response = await self.make_retriable_request(request)
 
         dl_url = await self.get_download_link(response)
         if dl_url is None:

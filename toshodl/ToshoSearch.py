@@ -12,7 +12,6 @@ class ToshoSearch(Printable):
         self.client = httpx.AsyncClient(base_url='https://feed.animetosho.org')
         self.cache = { }
 
-    #@flush_stdout
     async def search(self, key):
         if key in self.cache:
             return self.cache[key]
@@ -30,6 +29,7 @@ class ToshoSearch(Printable):
         self.print("*** There were no unique matches to %s\n" % (key))
         return None
 
+    @flush_stdout
     async def find_cache_match(self, key):
         # A numeric tosho id
         if re.match(r'^\d+$', key):
@@ -48,14 +48,12 @@ class ToshoSearch(Printable):
             for title, id in matches.items():
                 self.print(f'\t{id} {title}\n')
 
-            await self.flush_stdout()
-
         return None
 
+    @flush_stdout
     async def show_cache(self):
         for title, id in self.cache.items():
             self.print(f'{ id } { title }\n')
-        await self.flush_stdout()
 
     async def load_one_page_of_results(self, page = 0):
         self.print(f'Updating feed page {page}\n')

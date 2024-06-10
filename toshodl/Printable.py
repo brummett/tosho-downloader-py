@@ -20,9 +20,10 @@ class Printable(object):
         return self.stdout.drain()
 
 def flush_stdout(f):
-    def wrapper(self, *args, **kwargs):
-        rv = f(self, *args, **kwargs)
-        asyncio.create_task(self.flush_stdout)
+    async def wrapper(self, *args, **kwargs):
+        rv = await f(self, *args, **kwargs)
+        #asyncio.create_task(self.flush_stdout)
+        await self.flush_stdout()
         return rv
 
     return wrapper

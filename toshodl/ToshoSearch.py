@@ -1,5 +1,6 @@
 import httpx
 import logging
+import re
 
 from toshodl.Printable import Printable, flush_stdout
 
@@ -17,18 +18,44 @@ class ToshoSearch(Printable):
             return self.cache[key]
 
         await self.load_one_page_of_results()
+        found = await self.find_cache_match(key)
+        if found:
+            return found
+
+        await self.search_tosho(key)
+        found = await self.find_cache_match(key)
+        if found:
+            return found
+
+        self.print("*** There were no unique matches to %s\n" % (key))
+        return None
+
+    async def find_cache_match(self, key):
+        # A numeric tosho id
+        if re.match(r'^\d+$', key):
+            return key
+
+        # Exact match
         if key in self.cache:
             return self.cache[key]
 
+        # substr match
         matches = { title: id for title, id in self.cache.items() if title.find(key) >= 0 }
         if len(matches) == 1:
             return list(matches.values())[0]
         elif len(matches) > 1:
-            self.print("*** There were multiple matches:\n\t%s\n" % ( "\n\t".join(matches.keys())))
-            return None
+            self.print('*** There were multiple matches:\n');
+            for title, id in matches.items():
+                self.print(f'\t{id} {title}\n')
 
-        self.print("*** There were no matches to %s\n" % (key))
+            await self.flush_stdout()
+
         return None
+
+    async def show_cache(self):
+        for title, id in self.cache.items():
+            self.print(f'{ id } { title }\n')
+        await self.flush_stdout()
 
     async def load_one_page_of_results(self, page = 0):
         self.print(f'Updating feed page {page}\n')
@@ -49,3 +76,16 @@ class ToshoSearch(Printable):
             self.cache[ item['title'] ] = item['id']
             logger.debug('Got >>%s<< id %s', item['title'], item['id'])
 
+    async def search_tosho(self, key):
+        self.print(f'Searching for {key}\n')
+
+        for retries in range(3):
+            try:
+                response = await self.client.get('json', params={'q': key})
+                break
+            except httpx.ConnectTimeout:
+                logger.warn("Timout getting search results from animetosho")
+                continue
+        for item in response.json():
+            #logger.debug('Got >>%s<< id %s', item['title'], item['id'])
+            self.cache[ item['title'] ] = item['id']

@@ -13,8 +13,10 @@ from toshodl.Printable import Printable
 
 # A list of classes we've imported that we can download from.
 from toshodl.Task.KrakenFilesDownloader import KrakenFilesDownloader
+from toshodl.Task.GoFileDownloader import GoFileDownloader
 download_classes = {
     'KrakenFiles': KrakenFilesDownloader,
+    'GoFile': GoFileDownloader,
 }
 
 class PickFileDownloadSource(Printable, Task):

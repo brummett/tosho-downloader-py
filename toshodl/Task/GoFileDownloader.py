@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 import os.path
 import re
 import logging
+import asyncio
 
 from toshodl.FileDownloader import FileDownloader
 
@@ -25,20 +26,24 @@ class GoFileDownloader(FileDownloader):
     # websiteToken is used in the getContent API endpoint.  They change it from
     # time-to-time, so we extract it from a source file and cache it for the
     # duration of the program
+    # Make access to this serialized
+    _website_token_lock = asyncio.Lock()
     _website_token = None
     async def website_token(self):
-        if GoFileDownloader._website_token is None:
-            request = self.client.build_request('GET', 'https://gofile.io/dist/js/alljs.js')
-            response = await self.make_retriable_request(request)
-            js_code = response.text
+        async with GoFileDownloader._website_token_lock:
+            if GoFileDownloader._website_token is None:
+                request = self.client.build_request('GET', 'https://gofile.io/dist/js/alljs.js')
+                response = await self.make_retriable_request(request)
+                js_code = response.text
 
-            # The code contains a line that looks like:
-            # var fetchData = { wt: "4fd6sg89d7s6" }; // Move wt to URL query
-            match = re.search(r'fetchData = { wt: "([^"]+)"', js_code)
-            if match:
-                GoFileDownloader._website_token = match[1]
-            else:
-                raise ValueError('Could not find website token')
+                # The code contains a line that looks like:
+                # var fetchData = { wt: "4fd6sg89d7s6" }; // Move wt to URL query
+                match = re.search(r'fetchData = { wt: "([^"]+)"', js_code)
+                if match:
+                    GoFileDownloader._website_token = match[1]
+                    self.print(f'GoFile website_token { GoFileDownloader._website_token }\n')
+                else:
+                    raise ValueError('Could not find website token')
 
         return GoFileDownloader._website_token
 
@@ -47,17 +52,21 @@ class GoFileDownloader(FileDownloader):
     # download something, and use it for the whole life of the program.
     # A previous version created a new account for every download, and it got
     # throttled on their end for getting hit too often,
+    # Make access to this serialized
+    _dl_token_lock = asyncio.Lock()
     _dl_token = None
     async def dl_token(self):
-        if GoFileDownloader._dl_token is None:
-            request = self.client.build_request('POST', 'https://api.gofile.io/accounts')
-            response = await self.make_retriable_request(request)
-            json_data = response.json()
-            # looks like: {data => {token => 0eoxBkYGFYmHZ43mxkJpY2vWLeCYW5SV}, status => ok}
-            if 'data' in json_data and 'token' in json_data['data']:
-                GoFileDownloader._dl_token = json_data['data']['token']
-            else:
-                raise KeyError(f'Could not get dl_token, got { json_data }')
+        async with GoFileDownloader._dl_token_lock:
+            if GoFileDownloader._dl_token is None:
+                request = self.client.build_request('POST', 'https://api.gofile.io/accounts')
+                response = await self.make_retriable_request(request)
+                json_data = response.json()
+                # looks like: {data => {token => 0eoxBkYGFYmHZ43mxkJpY2vWLeCYW5SV}, status => ok}
+                if 'data' in json_data and 'token' in json_data['data']:
+                    GoFileDownloader._dl_token = json_data['data']['token']
+                    self.print(f'GoFile dl_token { GoFileDownloader._dl_token }\n')
+                else:
+                    raise KeyError(f'Could not get dl_token, got { json_data }')
 
         return GoFileDownloader._dl_token
 
@@ -76,7 +85,6 @@ class GoFileDownloader(FileDownloader):
         print(f'{self.url} => {url}')
 
         dl_token = await self.dl_token()
-        print(f'dl_token { dl_token }')
         return self.client.build_request('GET', url,
                                          headers={ 'Authorization': f'Bearer { dl_token }'})
         

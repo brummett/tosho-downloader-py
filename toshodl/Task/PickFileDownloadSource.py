@@ -57,9 +57,9 @@ class PickFileDownloadSource(Printable, Task):
         for idx, link in enumerate(chosen_source_links, start=1):
             self.print(f'    { chosen_source }: { link }\n')
             if self.is_batch():
-                filename = os.path.join(self.bundle, '%s.%03d' % ( self.filename, idx))
+                filename = os.path.join('working', self.bundle, '%s.%03d' % ( self.filename, idx))
             else:
-                filename = '%s.%03d' % ( self.filename, idx)
+                filename = os.path.join('working', '%s.%03d' % ( self.filename, idx))
 
             # maybe don't need picker or peers?
             dl_tasks.append( chosen_source_class(url=link, filename=filename) )
@@ -98,13 +98,13 @@ class PickFileDownloadSource(Printable, Task):
             self.print(f'All parts of { self.filename } are done\n')
             md5 = await self._join_file_parts(
                             filename,
-                            [ os.path.join('working', dl_task.filename) for dl_task in dl_tasks ])
+                            [ dl_task.filename for dl_task in dl_tasks ])
 
         else:
             self.print(f'{ self.filename } is just one part\n')
             md5 = await self._move_single_file(
                             filename,
-                            os.path.join('working', dl_tasks[0].filename))
+                            dl_tasks[0].filename)
 
         if md5.hexdigest() != self.md5:
             self.print(f'*** { self.filename } md5 differs\n    Got      { md5.hexdigest() }\n    Expected { self.md5 }\n')

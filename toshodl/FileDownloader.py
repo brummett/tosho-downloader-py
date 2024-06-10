@@ -72,8 +72,7 @@ class FileDownloader(Task, Printable):
             pct = bytes_dl / total_size * 100
             self.print(f'{msg} {self.filename} %0.2f MB %0.2f KB/s %0.1f%%\n' % ( mb, k_per_sec, pct))
 
-        pathname = os.path.join('working', self.filename)
-        dirname = os.path.dirname(pathname)
+        dirname = os.path.dirname(self.filename)
         try:
             os.makedirs(dirname)
         except FileExistsError:
@@ -85,7 +84,7 @@ class FileDownloader(Task, Printable):
             response = await self.client.send(request, stream=True)
             total_size = int(response.headers['Content-Length'])
 
-            with open(pathname, 'wb') as fh:
+            with open(self.filename, 'wb') as fh:
                 with ProgressTimer(start=10, interval=30, cb=print_progress) as t:
                     async for chunk in response.aiter_bytes():
                         bytes_dl += len(chunk)

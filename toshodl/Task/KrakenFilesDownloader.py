@@ -18,8 +18,9 @@ class KrakenFilesDownloader(FileDownloader):
         response = await self.timeout_retry(lambda: self.client.get(self.url))
         dl_link = await self.get_download_link(response)
 
-        async with self.client.stream('GET', dl_link) as response:
-            await self.save_stream_response(response)
+        if dl_link:
+            async with self.client.stream('GET', dl_link) as response:
+                await self.save_stream_response(response)
 
     async def get_download_link(self, response):
         dom = BeautifulSoup(BytesIO(response.content), features='html.parser')
@@ -33,6 +34,10 @@ class KrakenFilesDownloader(FileDownloader):
 
         form_action = urljoin(self.url, form.get('action'))
 
+        # I expected httpx to properly handle a custom boundary
+        # given structured data like this: data = { 'token': file_hash }
+        # https://github.com/encode/httpx/pull/2278
+        # Maybe the version I'm using doesn't have the change in that PR?
         payload = f'--{self.wk_boundary}\r\nContent-Disposition: form-data; name="token"\r\n\r\n{dl_token}\r\n--{self.wk_boundary}--'
         form_response = await self.client.post(form_action,
                                 headers={ 'Content-Type': f'multipart/form-data; boundary={ self.wk_boundary }',
@@ -43,7 +48,7 @@ class KrakenFilesDownloader(FileDownloader):
 
         dl_info = form_response.json()
         if dl_info['status'] != 'ok':
-            self.print(f"Bad status processing { self.url }: { dl_info }\n")
+            self.print(f"*** Bad status processing { self.url }: { dl_info }\n")
             return
 
         return dl_info['url']

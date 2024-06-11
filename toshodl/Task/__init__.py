@@ -20,6 +20,9 @@ class Task(object):
         self.done = asyncio.get_event_loop().create_future()
         super().__init__(*args, **kwargs)
 
+    async def task_impl(self):
+        NotImplementedError(f'{type(self)} did not implement task_impl()')
+
     async def run(self):
         #rv = await self.task_impl()
 
@@ -39,5 +42,11 @@ class Task(object):
 
         return rv
 
-    async def task_impl(self, *args, **kwargs):
-        pass
+    async def timeout_retry(self, f, tries=5):
+        for i in range(tries-1):
+            try:
+                rv = await f()
+            except httpx.ConnectTimeout:
+                logger.warn(f'Timeout getting { url }')
+                continue
+            return rv

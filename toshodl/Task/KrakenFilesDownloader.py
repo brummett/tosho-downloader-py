@@ -14,8 +14,12 @@ class KrakenFilesDownloader(FileDownloader):
     #def __init__(self, *args, **kwargs):
     #    super().__init__(*args, **kwargs)
 
-    async def make_initial_request(self):
-        return self.client.build_request('GET', self.url)
+    async def task_impl(self):
+        response = await self.timeout_retry(lambda: self.client.get(self.url))
+        dl_link = await self.get_download_link(response)
+
+        async with self.client.stream('GET', dl_link) as response:
+            await self.save_stream_response(response)
 
     async def get_download_link(self, response):
         dom = BeautifulSoup(BytesIO(response.content), features='html.parser')
@@ -43,7 +47,3 @@ class KrakenFilesDownloader(FileDownloader):
             return
 
         return dl_info['url']
-
-    async def make_download_request(self, url):
-        #return self.client.stream('GET', url)
-        return self.client.build_request('GET', url)

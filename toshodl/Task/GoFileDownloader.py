@@ -30,8 +30,7 @@ class GoFileDownloader(FileDownloader):
     async def website_token(self):
         async with GoFileDownloader._website_token_lock:
             if GoFileDownloader._website_token is None:
-                request = self.client.build_request('GET', 'https://gofile.io/dist/js/alljs.js')
-                response = await self.make_retriable_request(request)
+                response = await self.timeout_retry(lambda: self.client.get('https://gofile.io/dist/js/alljs.js'))
                 js_code = response.text
 
                 # The code contains a line that looks like:
@@ -56,8 +55,7 @@ class GoFileDownloader(FileDownloader):
     async def dl_token(self):
         async with GoFileDownloader._dl_token_lock:
             if GoFileDownloader._dl_token is None:
-                request = self.client.build_request('POST', 'https://api.gofile.io/accounts')
-                response = await self.make_retriable_request(request)
+                response = await self.timeout_retry(lambda: self.client.post('https://api.gofile.io/accounts'))
                 json_data = response.json()
                 # looks like: {data => {token => 0eoxBkYGFYmHZ43mxkJpY2vWLeCYW5SV}, status => ok}
                 if 'data' in json_data and 'token' in json_data['data']:
@@ -68,7 +66,7 @@ class GoFileDownloader(FileDownloader):
 
         return GoFileDownloader._dl_token
 
-    async def make_initial_request(self):
+    async def task_impl(self):
         # The url we're created with looks like https://gofile.io/d/fileId
         # which would generate a javascript-driven page if you pointed browser
         # at it.  Instead, we'll use that "fileId" and use GoFile's API
@@ -83,10 +81,7 @@ class GoFileDownloader(FileDownloader):
         print(f'{self.url} => {url}')
 
         dl_token = await self.dl_token()
-        return self.client.build_request('GET', url,
-                                         headers={ 'Authorization': f'Bearer { dl_token }'})
-        
-    async def get_download_link(self, response):
+        response = await self.timeout_retry(lambda: self.client.get(url, headers={ 'Authorization': f'Bearer { dl_token }'}))
         json = response.json()
         # { data => {
         #       childrenIds => [2c5d5a3c-8d58-4256-a774-13a72691959a],
@@ -124,9 +119,6 @@ class GoFileDownloader(FileDownloader):
             dl_link = v['link']
             break
 
-        return dl_link
-
-    async def make_download_request(self, url):
         self.print(f'Downloading from {url}\n')
         dl_token = await self.dl_token()
 
@@ -140,6 +132,7 @@ class GoFileDownloader(FileDownloader):
             'Cache-Control':    'no-cache'
         }
 
-        return self.client.build_request('GET', url,
-                                        headers=dl_headers)
-                                        #cookies={ 'accountToken': dl_token })
+        async with self.client.stream('GET', dl_link, headers=dl_headers) as response:
+            await self.save_stream_response(response)
+
+        return

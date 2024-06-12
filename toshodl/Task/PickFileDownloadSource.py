@@ -27,6 +27,7 @@ class PickFileDownloadSource(Printable, Task):
         self.bundle = bundle
         self.filename = filename
         self.md5 = md5
+        self.finalized = asyncio.get_running_loop().create_future()
 
         # Canonicalize all the link values to a list, even if only one item
         # 'links' will be missing if it hasn't uploaded any pieces there yet
@@ -110,11 +111,13 @@ class PickFileDownloadSource(Printable, Task):
                             filename,
                             dl_tasks[0].filename)
 
-        if md5.hexdigest() != self.md5:
+        if self.md5 and md5.hexdigest() != self.md5:
             self.print(f'*** { self.filename } md5 differs\n    Got      { md5.hexdigest() }\n    Expected { self.md5 }\n')
             dirname = os.path.dirname(self.filename)
             filename = os.path.basename(self.filename)
             os.rename(self.filename, os.path.join(dirname, f'badsum-{ filename }'))
+
+        self.finalized.set_result(True)
 
     async def _join_file_parts(self, filename, parts):
         async with aiofiles.open(filename, 'wb') as fh:

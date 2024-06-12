@@ -45,6 +45,10 @@ class PickFileDownloadSource(Printable, Task):
                 % ( self.bundle, self.filename, self.md5 )
 
     async def task_impl(self):
+        if os.path.exists(self.filename):
+            self.print(f"Skipping { self.filename } because it already exists\n")
+            return
+
         supported_sources = set(download_classes.keys())
         available_sources = set(self.links.keys())
 

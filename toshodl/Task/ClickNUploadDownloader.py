@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 class ClickNUploadDownloader(FileDownloader):
 
-    async def task_impl(self):
+    async def download_from_url(self):
         response = await self.timeout_retry(lambda: self.client.get(self.url, follow_redirects=True))
         redirected_url = str(response.url)
 

@@ -29,6 +29,22 @@ class FileDownloader(Task, Printable):
     def __str__(self):
         return f'download_from({ self.url })'
 
+    async def download_from_url(self):
+        raise NotImplementedError(f'{type(self)} did not implement download_from_url()')
+
+    async def task_impl(self):
+        for i in range(2):
+            try:
+                await self.download_from_url()
+            except httpx.ReadTimeout:
+                self.print(f'*** Caught timeout for { self.filename }: { i }\n')
+                await asyncio.sleep(5)
+                # try again?
+                continue
+
+            # worked, break the loop
+            break
+
     async def save_stream_response(self, response):
         self.print(f'Trying to download from { response.url }\n')
         dirname = os.path.dirname(self.filename)

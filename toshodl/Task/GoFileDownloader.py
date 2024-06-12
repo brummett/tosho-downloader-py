@@ -66,7 +66,7 @@ class GoFileDownloader(FileDownloader):
 
         return GoFileDownloader._dl_token
 
-    async def task_impl(self):
+    async def download_from_url(self):
         # The url we're created with looks like https://gofile.io/d/fileId
         # which would generate a javascript-driven page if you pointed browser
         # at it.  Instead, we'll use that "fileId" and use GoFile's API

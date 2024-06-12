@@ -14,7 +14,7 @@ class KrakenFilesDownloader(FileDownloader):
     #def __init__(self, *args, **kwargs):
     #    super().__init__(*args, **kwargs)
 
-    async def task_impl(self):
+    async def download_from_url(self):
         response = await self.timeout_retry(lambda: self.client.get(self.url))
         dl_link = await self.get_download_link(response)
 

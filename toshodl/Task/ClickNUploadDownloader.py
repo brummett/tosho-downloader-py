@@ -77,9 +77,9 @@ class ClickNUploadDownloader(FileDownloader):
     async def _handle_countdown(self, dom):
         countdown = dom.select_one('span#countdown span.seconds')
         if countdown:
-            seconds = countdown.get_text()
-            self.print(f'  Pausing for { seconds } countdown...')
-            await asyncio.sleep(int(seconds))
+            seconds = int(countdown.get_text())
+            self.print(f'  Pausing for { seconds } countdown...\n')
+            await asyncio.sleep(seconds + 2)
 
     # The captcha is presented as 4 span elements that display numbers.
     # The HTML has them out of order, but uses "padding-left" styles to display

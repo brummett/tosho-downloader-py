@@ -23,6 +23,12 @@ from toshodl.FileDownloader import FileDownloader
 logger = logging.getLogger(__name__)
 
 class ClickNUploadDownloader(FileDownloader):
+    # GETting the file stream will return a 503 (Service Temporarily Unavailable)
+    # response if more than one download from CnD is happening simultaneously.  Yes,
+    # this means we're wasting a worker slot with a job that's just waiting for
+    # another ClickNUploadDownloader instance to finish.  There shouldn't be a
+    # deadlock since presumedly one will have the lock and be downloading something
+    _serial_lock = asyncio.Lock()
 
     async def download_from_url(self):
         response = await self.timeout_retry(lambda: self.client.get(self.url, follow_redirects=True))
@@ -32,13 +38,11 @@ class ClickNUploadDownloader(FileDownloader):
         page2_inputs = await self._handle_page2_captcha_page(redirected_url, page1_inputs)
 
         dl_link = await self._handle_page3_download_page(redirected_url, page2_inputs)
-        #return await self.timeout_retry(lambda: self.client.get(dl_link, verify=False, stream=True))
-        #no_verify_client = httpx.AsyncClient(verify=False)
-        #return await self.timeout_retry(lambda: no_verify_client.get(dl_link, stream=True))
 
-        async with httpx.AsyncClient(verify=False) as no_verify_client:
-            async with no_verify_client.stream('GET', dl_link) as response:
-                await self.save_stream_response(response)
+        async with ClickNUploadDownloader._serial_lock:
+            async with httpx.AsyncClient(verify=False) as no_verify_client:
+                async with no_verify_client.stream('GET', dl_link) as response:
+                    await self.save_stream_response(response)
 
         return
 

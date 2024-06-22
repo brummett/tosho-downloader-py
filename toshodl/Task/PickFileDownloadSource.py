@@ -44,8 +44,15 @@ class PickFileDownloadSource(Printable, Task):
         return f"PickFileDownloadSource\n\tbundle %s\n\tfilename %s\n\tmd5 %s" \
                 % ( self.bundle, self.filename, self.md5 )
 
+    def is_already_downloaded(self):
+        if self.is_batch():
+            filename = os.path.join(self.bundle, self.filename)
+        else:
+            filename = self.filename
+        return os.path.exists(filename)
+
     async def task_impl(self):
-        if os.path.exists(self.filename):
+        if self.is_already_downloaded():
             self.print(f"Skipping { self.filename } because it already exists\n")
             return
 
@@ -117,9 +124,9 @@ class PickFileDownloadSource(Printable, Task):
 
         if self.md5 and md5.hexdigest() != self.md5:
             self.print(f'*** { self.filename } md5 differs\n    Got      { md5.hexdigest() }\n    Expected { self.md5 }\n')
-            dirname = os.path.dirname(self.filename)
-            filename = os.path.basename(self.filename)
-            os.rename(self.filename, os.path.join(dirname, f'badsum-{ filename }'))
+            dirname = os.path.dirname(filename)
+            orig_filename = os.path.basename(filename)
+            os.rename(filename, os.path.join(dirname, f'badsum-{ orig_filename }'))
 
         self.finalized.set_result(True)
 

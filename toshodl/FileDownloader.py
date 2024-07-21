@@ -61,13 +61,14 @@ class FileDownloader(Printable):
             piece_tasks = [ ]
             async with asyncio.TaskGroup() as tg:
                 for idx, link in enumerate(self.sources[source], start=1):
-                    self.print(f'{ self.filename } part { idx }: { link }\n')
-                    task = tg.create_task(self.download_piece(dl_class, link, idx))
-                    piece_tasks.append(task)
+                    async with FileDownloader.dl_sem:
+                        self.print(f'{ self.filename } part { idx }: { link }\n')
+                        task = tg.create_task(self.download_piece(dl_class, link, idx))
+                        piece_tasks.append(task)
 
             working_filenames = [ t.result() for t in piece_tasks ]
             await self.finalize_file(working_filenames)
-            break
+            break # This one worked; don't try other sources
 
     def is_already_downloaded(self):
         return os.path.exists(self.pathname)

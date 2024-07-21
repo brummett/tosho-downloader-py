@@ -33,16 +33,25 @@ class DownloadSourceBase(HttpClient):
         except FileExistsError:
             pass
 
-        start_time = time.time()
-        bytes_dl = 0
+        start_time = prev_time = time.time()
+        bytes_dl = prev_bytes = 0
         total_size = int(response.headers['Content-Length'])
 
-        def print_progress(msg = 'In progress:'):
-            kb = bytes_dl / 1024
+        def print_progress(msg = 'In progress:', final=False):
+            nonlocal prev_time
+            nonlocal prev_bytes
+
+            bytes_report = bytes_dl if final else (bytes_dl - prev_bytes)
+            time_report  = start_time if final else prev_time
+
+            kb = bytes_report / 1024
             mb = kb / 1024
-            k_per_sec = kb / (time.time() - start_time)
+            k_per_sec = kb / (time.time() - time_report)
             pct = bytes_dl / total_size * 100
             self.print(f'{msg} {self.filename} %0.2f MB %0.2f KB/s %0.1f%%\n' % ( mb, k_per_sec, pct))
+
+            prev_bytes = bytes_dl
+            prev_time = time.time()
 
         async with aiofiles.open(self.filename, mode='wb') as fh:
             with ProgressTimer(start=10, interval=30, cb=print_progress) as t:
@@ -52,7 +61,7 @@ class DownloadSourceBase(HttpClient):
                     bytes_dl += len(chunk)
                     await fh.write(chunk)
 
-        print_progress(msg='Done downloading')
+        print_progress(msg='Done downloading', final=True)
 
 class ProgressTimer(object):
     def __init__(self, interval, cb, start = None):
@@ -61,7 +70,7 @@ class ProgressTimer(object):
         self.cb = cb
 
     def __enter__(self):
-        self.task = asyncio.ensure_future(self._run())
+        self.task = asyncio.create_task(self._run())
 
     def __exit__(self, type, value, traceback):
         self.task.cancel()

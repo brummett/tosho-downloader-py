@@ -44,14 +44,13 @@ class DownloadSourceBase(HttpClient):
             pct = bytes_dl / total_size * 100
             self.print(f'{msg} {self.filename} %0.2f MB %0.2f KB/s %0.1f%%\n' % ( mb, k_per_sec, pct))
 
-        # We'll get a httpx.ReadTimeout if there's a download timeout
-        # consider retrying/restarting either the whole request or
-        # at the currently downloaded position
-        with open(self.filename, 'wb') as fh:
+        async with aiofiles.open(self.filename, mode='wb') as fh:
             with ProgressTimer(start=10, interval=30, cb=print_progress) as t:
+                # We'll get a httpx.ReadTimeout if there's a download timeout
+                # which will get caught in the exeption_retry() of download()
                 async for chunk in response.aiter_bytes():
                     bytes_dl += len(chunk)
-                    fh.write(chunk)
+                    await fh.write(chunk)
 
         print_progress(msg='Done downloading')
 

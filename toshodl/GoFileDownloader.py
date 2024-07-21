@@ -1,12 +1,9 @@
 from urllib.parse import urlparse
 import os.path
 import re
-import logging
 import asyncio
 
-from toshodl.FileDownloader import FileDownloader
-
-logger = logging.getLogger(__name__)
+from toshodl.DownloadSourceBase import DownloadSourceBase
 
 # Gofile has an API we can download through.  You first have to create a
 # temp account, which returns a token that must be used for other interaction.
@@ -16,11 +13,7 @@ logger = logging.getLogger(__name__)
 
 # Based on https://github.com/ltsdw/gofile-downloader
 
-class GoFileDownloader(FileDownloader):
-
-    #def __init__(self, *args, **kwargs):
-    #    super().__init__(*args, **kwargs)
-
+class GoFileDownloader(DownloadSourceBase):
     # websiteToken is used in the getContent API endpoint.  They change it from
     # time-to-time, so we extract it from a source file and cache it for the
     # duration of the program
@@ -30,7 +23,7 @@ class GoFileDownloader(FileDownloader):
     async def website_token(self):
         async with GoFileDownloader._website_token_lock:
             if GoFileDownloader._website_token is None:
-                response = await self.timeout_retry(lambda: self.client.get('https://gofile.io/dist/js/alljs.js'))
+                response = await self.exception_retry(lambda: self.client.get('https://gofile.io/dist/js/alljs.js'))
                 js_code = response.text
 
                 # The code contains a line that looks like:
@@ -55,7 +48,7 @@ class GoFileDownloader(FileDownloader):
     async def dl_token(self):
         async with GoFileDownloader._dl_token_lock:
             if GoFileDownloader._dl_token is None:
-                response = await self.timeout_retry(lambda: self.client.post('https://api.gofile.io/accounts'))
+                response = await self.exception_retry(lambda: self.client.post('https://api.gofile.io/accounts'))
                 json_data = response.json()
                 # looks like: {data => {token => 0eoxBkYGFYmHZ43mxkJpY2vWLeCYW5SV}, status => ok}
                 if 'data' in json_data and 'token' in json_data['data']:
@@ -81,7 +74,7 @@ class GoFileDownloader(FileDownloader):
         print(f'{self.url} => {url}')
 
         dl_token = await self.dl_token()
-        response = await self.timeout_retry(lambda: self.client.get(url, headers={ 'Authorization': f'Bearer { dl_token }'}))
+        response = await self.exception_retry(lambda: self.client.get(url, headers={ 'Authorization': f'Bearer { dl_token }'}))
         json = response.json()
         # { data => {
         #       childrenIds => [2c5d5a3c-8d58-4256-a774-13a72691959a],

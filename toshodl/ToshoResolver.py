@@ -12,9 +12,8 @@ class ToshoResolver(HttpClient):
     base_url = 'https://feed.animetosho.org/json'
 
     def __init__(self, id, *args, **kwargs):
-        self.id = id
         super().__init__(*args, **kwargs)
-        asyncio.create_task(self.run())
+        self.id = id
 
     def __str__(self):
         return f'ToshoResolver { self.id }'
@@ -59,20 +58,20 @@ class ToshoResolver(HttpClient):
         #           'https://example.org/9876',
         #       ]
         # }
-        # Consider using a TaskGroup here?
-        if data['num_files'] == 1:
-            # Note that 'links' might be missing because the pieces haven't
-            # been uploaded yet
-            dl = FileDownloader(filename = data['files'][0]['filename'],
-                                md5      = data['files'][0]['md5'],
-                                links    = data['files'][0].get('links', {}))
-            asyncio.create_task(dl.download())
+        async with asyncio.TaskGroup() as tg:
+            if data['num_files'] == 1:
+                # Note that 'links' might be missing because the pieces haven't
+                # been uploaded yet
+                dl = FileDownloader(filename = data['files'][0]['filename'],
+                                    md5      = data['files'][0]['md5'],
+                                    links    = data['files'][0].get('links', {}))
+                tg.create_task(dl.download())
 
-        elif data['num_files'] > 1:
-            for f in data['files']:
-                dl = FileDownloader(bundle = data['title'],
-                                    filename = f['filename'],
-                                    md5      = f['md5'],
-                                    links    = f.get('links', {}))
-                asyncio.create_task(dl.download())
+            elif data['num_files'] > 1:
+                for f in data['files']:
+                    dl = FileDownloader(bundle = data['title'],
+                                        filename = f['filename'],
+                                        md5      = f['md5'],
+                                        links    = f.get('links', {}))
+                    tg.create_task(dl.download())
 

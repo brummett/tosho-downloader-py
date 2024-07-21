@@ -19,12 +19,12 @@ from toshodl.Printable import Printable
 
 # A list of classes we've imported that we can download from.
 from toshodl.KrakenFilesDownloader import KrakenFilesDownloader
-#from toshodl.GoFileDownloader import GoFileDownloader
-#from toshodl.ClickNUploadDownloader import ClickNUploadDownloader
+from toshodl.GoFileDownloader import GoFileDownloader
+from toshodl.ClickNUploadDownloader import ClickNUploadDownloader
 download_classes = {
     'KrakenFiles': KrakenFilesDownloader,
-    #'GoFile': GoFileDownloader,
-    #'ClickNUpload': ClickNUploadDownloader,
+    'GoFile': GoFileDownloader,
+    'ClickNUpload': ClickNUploadDownloader,
 }
 
 class FileDownloader(Printable):

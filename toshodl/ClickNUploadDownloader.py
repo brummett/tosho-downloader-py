@@ -15,14 +15,11 @@ from bs4 import BeautifulSoup
 import asyncio
 import re
 import urllib.parse
-import logging
 import httpx
 
-from toshodl.FileDownloader import FileDownloader
+from toshodl.DownloadSourceBase import DownloadSourceBase
 
-logger = logging.getLogger(__name__)
-
-class ClickNUploadDownloader(FileDownloader):
+class ClickNUploadDownloader(DownloadSourceBase):
     # GETting the file stream will return a 503 (Service Temporarily Unavailable)
     # response if more than one download from CnD is happening simultaneously.  Yes,
     # this means we're wasting a worker slot with a job that's just waiting for
@@ -31,7 +28,7 @@ class ClickNUploadDownloader(FileDownloader):
     _serial_lock = asyncio.Lock()
 
     async def download_from_url(self):
-        response = await self.timeout_retry(lambda: self.client.get(self.url, follow_redirects=True))
+        response = await self.exception_retry(lambda: self.client.get(self.url, follow_redirects=True))
         redirected_url = str(response.url)
 
         page1_inputs = self._handle_page1_landing_page(response)

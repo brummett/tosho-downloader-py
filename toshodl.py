@@ -5,7 +5,7 @@ import queue
 
 from toshodl.ToshoSearch import ToshoSearch
 from toshodl import AsyncConsole
-#from toshodl.Task.ToshoResolver import ToshoResolver
+from toshodl.ToshoResolver import ToshoResolver
 
 num_downloaders = 5
 
@@ -14,6 +14,7 @@ async def main():
 
     tosho = ToshoSearch()
 
+    tasks = []
     while True:
         writer.write('waiting for input: '.encode())
         line = await reader.readline()
@@ -25,8 +26,7 @@ async def main():
             id = await tosho.search(trimmed)
             if id is not None:
                 writer.write(f'{trimmed} is id {id}\n'.encode())
-                #task = ToshoResolver(id)
-                #queue_tasks(work_queue, task)
+                task = ToshoResolver(id)
 
     print("Out of the main loop")
 

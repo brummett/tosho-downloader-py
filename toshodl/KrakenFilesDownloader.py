@@ -1,25 +1,20 @@
 from io import BytesIO
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
-import logging
 
-from toshodl.FileDownloader import FileDownloader
+from toshodl.DownloadSourceBase import DownloadSourceBase
 
-logger = logging.getLogger(__name__)
+class KrakenFilesDownloader(DownloadSourceBase):
 
-class KrakenFilesDownloader(FileDownloader):
     # magic string needed to submit the download form
     wk_boundary = '----WebKitFormBoundary7MA4YWxkTrZu0gW'
 
-    #def __init__(self, *args, **kwargs):
-    #    super().__init__(*args, **kwargs)
-
     async def download_from_url(self):
-        response = await self.timeout_retry(lambda: self.client.get(self.url))
+        response = await self.exception_retry(lambda: self.client.get(self.url))
         dl_link = await self.get_download_link(response)
 
         if dl_link:
-            async with self.client.stream('GET', dl_link) as response:
+            async with self.client.stream('GET', dl_link, timeout=15.0) as response:
                 await self.save_stream_response(response)
 
     async def get_download_link(self, response):

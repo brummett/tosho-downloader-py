@@ -84,3 +84,7 @@ class ProgressTimer(object):
         while True:
             self.cb()
             await asyncio.sleep(self.interval)
+
+# raised when one source wants to give up and allow another source to try
+class XTryAnotherSource(Exception):
+    pass

@@ -17,7 +17,7 @@ import re
 import urllib.parse
 import httpx
 
-from toshodl.DownloadSourceBase import DownloadSourceBase
+from toshodl.DownloadSourceBase import DownloadSourceBase,XTryAnotherSource
 
 class ClickNUploadDownloader(DownloadSourceBase):
     # GETting the file stream will return a 503 (Service Temporarily Unavailable)
@@ -46,6 +46,9 @@ class ClickNUploadDownloader(DownloadSourceBase):
     def _handle_page1_landing_page(self, response):
         dom = BeautifulSoup(BytesIO(response.content), features='html.parser')
         form = dom.select_one('div.download form')
+        if not form:
+            self.print(f'did not find download form at { self.url }\n')
+            raise XTryAnotherSource()
         inputs = extract_inputs_from_form(form)
         return inputs
 
@@ -63,7 +66,8 @@ class ClickNUploadDownloader(DownloadSourceBase):
         form = dom.select_one('form[name=F1]')
         captcha = self._solve_captcha(form)
         if not captcha:
-            raise ValueError(f'Could not solve captcha at {url}')
+            self.print(f'*** Could not solve captcha at {url}\n')
+            raise XTryAnotherSource
         self.print(f'Solved captcha: { captcha }\n')
 
         await self._handle_countdown(dom)

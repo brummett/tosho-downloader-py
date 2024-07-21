@@ -3,15 +3,7 @@ import os.path
 import re
 import asyncio
 
-from toshodl.DownloadSourceBase import DownloadSourceBase
-
-# Gofile has an API we can download through.  You first have to create a
-# temp account, which returns a token that must be used for other interaction.
-# The URL we get from Tosho has a file-id as the last part of the path.
-# This fileId+token gets turned into a download URL and downloaded in
-# the usual way
-
-# Based on https://github.com/ltsdw/gofile-downloader
+from toshodl.DownloadSourceBase import DownloadSourceBase,XTryAnotherSource
 
 class GoFileDownloader(DownloadSourceBase):
     # websiteToken is used in the getContent API endpoint.  They change it from
@@ -104,8 +96,13 @@ class GoFileDownloader(DownloadSourceBase):
         #   },
         #   status => ok}
         # The response indicates multiple files can be in each "folder", but Tosho only ever does one
+        # If the file is missing: { 'status': 'error-notFound', 'data': {}}
+        if json['status'] == 'error-notFound':
+            self.print(f'*** { self.url } is not found here\n')
+            raise XTryAnotherSource()
         if json['status'] != 'ok':
-            raise ValueError(f'Unexpected link data: { json }')
+            self.print(f'*** Unexpected link data: { json }\n')
+            raise XTryAnotherSource()
         if len(json['data']['children']) != 1:
             raise ValueError(f"Expected 1 'children' but got { json['data']['children'] }")
         for v in json['data']['children'].values():

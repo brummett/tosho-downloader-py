@@ -2,7 +2,7 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-from toshodl.DownloadSourceBase import DownloadSourceBase
+from toshodl.DownloadSourceBase import DownloadSourceBase,XTryAnotherSource
 
 class KrakenFilesDownloader(DownloadSourceBase):
 
@@ -44,6 +44,6 @@ class KrakenFilesDownloader(DownloadSourceBase):
         dl_info = form_response.json()
         if dl_info['status'] != 'ok':
             self.print(f"*** Bad status processing { self.url }: { dl_info }\n")
-            return
+            raise XTryAnotherSource
 
         return dl_info['url']

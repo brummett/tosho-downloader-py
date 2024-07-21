@@ -12,10 +12,12 @@
 import os
 import asyncio
 import aiofiles
+import aiofiles.os
 import hashlib
 import random
 
 from toshodl.Printable import Printable
+from toshodl.DownloadSourceBase import XTryAnotherSource
 
 # A list of classes we've imported that we can download from.
 from toshodl.KrakenFilesDownloader import KrakenFilesDownloader
@@ -55,20 +57,35 @@ class FileDownloader(Printable):
         source_names = list(self.sources.keys())
         random.shuffle(source_names)
         for source in source_names:
-            self.print(f'Downloading { len(self.sources[source]) } pieces from { source } for { self.filename }\n')
-            dl_class = download_classes[source]
+            try:
+                self.print(f'Downloading { len(self.sources[source]) } pieces from { source } for { self.filename }\n')
+                dl_class = download_classes[source]
 
-            piece_tasks = [ ]
-            async with asyncio.TaskGroup() as tg:
-                for idx, link in enumerate(self.sources[source], start=1):
-                    async with FileDownloader.dl_sem:
-                        self.print(f'{ self.filename } part { idx }: { link }\n')
-                        task = tg.create_task(self.download_piece(dl_class, link, idx))
-                        piece_tasks.append(task)
+                piece_tasks = [ ]
+                async with asyncio.TaskGroup() as tg:
+                    for idx, link in enumerate(self.sources[source], start=1):
+                        async with FileDownloader.dl_sem:
+                            self.print(f'{ self.filename } part { idx }: { link }\n')
+                            task = tg.create_task(self.download_piece(dl_class, link, idx))
+                            piece_tasks.append(task)
 
-            working_filenames = [ t.result() for t in piece_tasks ]
-            await self.finalize_file(working_filenames)
-            break # This one worked; don't try other sources
+                working_filenames = [ t.result() for t in piece_tasks ]
+                await self.finalize_file(working_filenames)
+                return # This one worked; don't try other sources
+
+            except* XTryAnotherSource as e:
+                self.print(f'*** Source { source } gave up on { self.filename }, trying the next one...\n')
+                await self.remove_working_files(source)
+
+        self.print('*** There are no more sources for { self.filename }\n')
+
+    async def remove_working_files(self, source):
+        async with asyncio.TaskGroup() as tg:
+            for i in range(len(self.sources[source])):
+                dl_filename = '%s.%03d' % ( self.working_pathname, i+1)
+                self.print(f'*** deleting: { dl_filename }\n')
+                tg.create_task(aiofiles.os.unlink(dl_filename))
+                #await aiofiles.unlink(dl_filename)
 
     def is_already_downloaded(self):
         return os.path.exists(self.pathname)

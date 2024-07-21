@@ -13,12 +13,14 @@ class HttpClient(Printable):
         self.client = HttpClient.client
         super().__init__(*args, **kwargs)
 
-    async def exception_retry(self, fn, exception=httpx.ConnectTimeout, tries=5, delay=5):
+    async def exception_retry(self, fn, exception=httpx.ConnectTimeout, tries=5, delay=5, name=None):
+        if name is None:
+            name = self.url
         for i in range(tries-1):
             try:
                 rv = await fn()
             except exception as e:
-                self.print(f'*** { self } Caught { e }: { i }\n')
+                self.print(f'*** { self } Caught { e } attempt { i }: { name }\n')
                 if delay and delay > 0:
                     await asyncio.sleep(delay)
                 continue # try again

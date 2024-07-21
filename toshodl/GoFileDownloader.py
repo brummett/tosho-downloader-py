@@ -15,7 +15,7 @@ class GoFileDownloader(DownloadSourceBase):
     async def website_token(self):
         async with GoFileDownloader._website_token_lock:
             if GoFileDownloader._website_token is None:
-                response = await self.exception_retry(lambda: self.client.get('https://gofile.io/dist/js/alljs.js'))
+                response = await self.exception_retry(lambda: self.client.get('https://gofile.io/dist/js/alljs.js'), name='GoFile alljs.js')
                 js_code = response.text
 
                 # The code contains a line that looks like:
@@ -40,7 +40,7 @@ class GoFileDownloader(DownloadSourceBase):
     async def dl_token(self):
         async with GoFileDownloader._dl_token_lock:
             if GoFileDownloader._dl_token is None:
-                response = await self.exception_retry(lambda: self.client.post('https://api.gofile.io/accounts'))
+                response = await self.exception_retry(lambda: self.client.post('https://api.gofile.io/accounts'), name='GoFile accounts')
                 json_data = response.json()
                 # looks like: {data => {token => 0eoxBkYGFYmHZ43mxkJpY2vWLeCYW5SV}, status => ok}
                 if 'data' in json_data and 'token' in json_data['data']:

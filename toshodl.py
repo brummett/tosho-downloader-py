@@ -7,8 +7,6 @@ from toshodl.ToshoSearch import ToshoSearch
 from toshodl import AsyncConsole
 from toshodl.ToshoResolver import ToshoResolver
 
-num_downloaders = 5
-
 async def main():
     reader, writer = await AsyncConsole.init()
 

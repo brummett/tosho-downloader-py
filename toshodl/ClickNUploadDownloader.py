@@ -15,14 +15,11 @@ from bs4 import BeautifulSoup
 import asyncio
 import re
 import urllib.parse
-import logging
 import httpx
 
-from toshodl.FileDownloader import FileDownloader
+from toshodl.DownloadSourceBase import DownloadSourceBase,XTryAnotherSource
 
-logger = logging.getLogger(__name__)
-
-class ClickNUploadDownloader(FileDownloader):
+class ClickNUploadDownloader(DownloadSourceBase):
     # GETting the file stream will return a 503 (Service Temporarily Unavailable)
     # response if more than one download from CnD is happening simultaneously.  Yes,
     # this means we're wasting a worker slot with a job that's just waiting for
@@ -31,7 +28,7 @@ class ClickNUploadDownloader(FileDownloader):
     _serial_lock = asyncio.Lock()
 
     async def download_from_url(self):
-        response = await self.timeout_retry(lambda: self.client.get(self.url, follow_redirects=True))
+        response = await self.exception_retry(lambda: self.client.get(self.url, follow_redirects=True))
         redirected_url = str(response.url)
 
         page1_inputs = self._handle_page1_landing_page(response)
@@ -49,6 +46,9 @@ class ClickNUploadDownloader(FileDownloader):
     def _handle_page1_landing_page(self, response):
         dom = BeautifulSoup(BytesIO(response.content), features='html.parser')
         form = dom.select_one('div.download form')
+        if not form:
+            self.print(f'did not find download form at { self.url }\n')
+            raise XTryAnotherSource()
         inputs = extract_inputs_from_form(form)
         return inputs
 
@@ -66,7 +66,8 @@ class ClickNUploadDownloader(FileDownloader):
         form = dom.select_one('form[name=F1]')
         captcha = self._solve_captcha(form)
         if not captcha:
-            raise ValueError(f'Could not solve captcha at {url}')
+            self.print(f'*** Could not solve captcha at {url}\n')
+            raise XTryAnotherSource
         self.print(f'Solved captcha: { captcha }\n')
 
         await self._handle_countdown(dom)

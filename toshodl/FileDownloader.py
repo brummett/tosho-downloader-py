@@ -1,98 +1,155 @@
-# A mixin that all the individual downloaders use.
-# It establishes a framework for how the other downloaders do
-# their work.  In general, tosho will refer us to a sort of landing
-# page that has a link that leads to the download link for the file data
+# Represents the intent to download a single file
+# That file might be part of a batch of files.  For a batch, a subdirectory
+# will be created to hold all the files in the batch
 #
-# This is not a runnable Task by itself.  Consuming classes must
-# implement some methods:
-#   * get_download_link
-#   * make_download_request
+# The file might have been split into multiple parts.  If so, we'll create
+# tasks to download each of those parts, and then join them together when
+# they're all downloaded.
+#
+# The file will have one or more download sources.  We'll make a list of
+# the sources we support, randomize them, then try them in order
 
-import httpx
-import logging
-import time
+import os
 import asyncio
-import os.path
+import aiofiles
+import aiofiles.os
+import hashlib
+import random
 
-from toshodl.Task import Task
 from toshodl.Printable import Printable
+from toshodl.DownloadSourceBase import XTryAnotherSource
 
-logger = logging.getLogger(__name__)
+# A list of classes we've imported that we can download from.
+from toshodl.KrakenFilesDownloader import KrakenFilesDownloader
+from toshodl.GoFileDownloader import GoFileDownloader
+from toshodl.ClickNUploadDownloader import ClickNUploadDownloader
+download_classes = {
+    'KrakenFiles': KrakenFilesDownloader,
+    'GoFile': GoFileDownloader,
+    'ClickNUpload': ClickNUploadDownloader,
+}
 
-class FileDownloader(Task, Printable):
-    # url is where tosho told us to go
-    def __init__(self, url, filename, *args, **kwargs):
-        self.url = url
-        self.filename = filename
+class FileDownloader(Printable):
+
+    dl_sem = asyncio.Semaphore(5)  # limit concurrent downloads
+
+    def __init__(self,  filename,
+                        md5,
+                        links,
+                        bundle = None,
+                        *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def __str__(self):
-        return f'download_from({ self.url })'
+        self.filename = filename
+        self.pathname = os.path.join(bundle, filename) if bundle else filename
+        self.working_pathname = os.path.join('working', self.pathname)
+        self.md5 = md5
 
-    async def download_from_url(self):
-        raise NotImplementedError(f'{type(self)} did not implement download_from_url()')
+        supported_sources = set(download_classes.keys())
+        available_sources = set(links.keys())
+        self.sources = { k: links[k] for k in supported_sources.intersection(available_sources) }
 
-    async def task_impl(self):
-        for i in range(2):
+    async def download(self):
+        if self.is_already_downloaded():
+            self.print(f'Skipping { self.filename } because it already exists\n')
+            return
+
+        source_names = list(self.sources.keys())
+        random.shuffle(source_names)
+        for source in source_names:
             try:
-                await self.download_from_url()
-            except httpx.ReadTimeout:
-                self.print(f'*** Caught timeout for { self.filename }: { i }\n')
-                await asyncio.sleep(5)
-                # try again?
-                continue
+                self.print(f'Downloading { len(self.sources[source]) } pieces from { source } for { self.filename }\n')
+                dl_class = download_classes[source]
 
-            # worked, break the loop
-            break
+                piece_tasks = [ ]
+                async with asyncio.TaskGroup() as tg:
+                    for idx, link in enumerate(self.sources[source], start=1):
+                        async with FileDownloader.dl_sem:
+                            self.print(f'{ self.filename } part { idx }: { link }\n')
+                            task = tg.create_task(self.download_piece(dl_class, link, idx))
+                            piece_tasks.append(task)
 
-    async def save_stream_response(self, response):
-        self.print(f'Trying to download from { response.url }\n')
-        dirname = os.path.dirname(self.filename)
+                working_filenames = [ t.result() for t in piece_tasks ]
+                await self.finalize_file(working_filenames)
+                return # This one worked; don't try other sources
+
+            except* XTryAnotherSource as e:
+                self.print(f'*** Source { source } gave up on { self.filename }, trying the next one...\n')
+                await self.remove_working_files(source)
+
+        self.print('*** There are no more sources for { self.filename }\n')
+
+    async def remove_working_files(self, source):
+        async with asyncio.TaskGroup() as tg:
+            for i in range(len(self.sources[source])):
+                dl_filename = '%s.%03d' % ( self.working_pathname, i+1)
+                self.print(f'*** deleting: { dl_filename }\n')
+                tg.create_task(aiofiles.os.unlink(dl_filename))
+                #await aiofiles.unlink(dl_filename)
+
+    def is_already_downloaded(self):
+        return os.path.exists(self.pathname)
+
+    # Download one piece of a file with the given download class and URL/link
+    # Return the working filename
+    async def download_piece(self, source_class, link, idx):
+        dl_filename = '%s.%03d' % ( self.working_pathname, idx)
+        dl = source_class(url=link, filename=dl_filename)
+        await dl.download()
+        return dl_filename
+
+    # Join the pieces into the final combined file
+    async def finalize_file(self, working_filenames):
+        self.make_batch_subdir()
+
+        if len(working_filenames) > 1:
+            self.print(f'All parts of { self.pathname } are done\n')
+            md5 = await self.join_file_parts(working_filenames)
+
+        else:
+            self.print(f'{ self.pathname } is just one part\n')
+            md5 = await self.move_single_file(working_filenames[0])
+
+        if md5.hexdigest() != self.md5:
+            self.print(f'*** { self.pathname } md5 differs!\n    Got      { md5.hexdigest() }\n    Expected { self.md5 }\n')
+            dirname = os.path.dirname(self.pathname)
+            orig_filename = os.path.basename(self.pathname)
+            os.rename(self.pathname, os.path.join(dirname, f'badsum-{ orig_filename }'))
+            return False
+
+        return True
+
+    def make_batch_subdir(self):
+        dirname = os.path.dirname(self.pathname)
         try:
-            os.makedirs(dirname)
+            if dirname:
+                os.makedirs(dirname)
         except FileExistsError:
             pass
 
-        start_time = time.time()
-        bytes_dl = 0
-        total_size = int(response.headers['Content-Length'])
+    async def join_file_parts(self, parts):
+        async with aiofiles.open(self.pathname, 'wb') as fh:
+            md5 = hashlib.md5()
+            for part in parts:
+                self.print(f'  { part }\n')
+                await self.flush_stdout()
+                async with aiofiles.open(part, 'rb') as part_fh:
+                    chunk = await part_fh.read()
+                    md5.update(chunk)
+                    await fh.write(chunk)
+        self.print(f'  ===> { self.pathname }\n')
+        await self.flush_stdout()
 
-        def print_progress(msg = 'In progress:'):
-            kb = bytes_dl / 1024
-            mb = kb / 1024
-            k_per_sec = kb / (time.time() - start_time)
-            pct = bytes_dl / total_size * 100
-            self.print(f'{msg} {self.filename} %0.2f MB %0.2f KB/s %0.1f%%\n' % ( mb, k_per_sec, pct))
+        for part in parts:
+            os.remove(part)
 
-        # We'll get a httpx.ReadTimeout if there's a download timeout
-        # consider retrying/restarting either the whole request or
-        # at the currently downloaded position
-        with open(self.filename, 'wb') as fh:
-            with ProgressTimer(start=10, interval=30, cb=print_progress) as t:
-                async for chunk in response.aiter_bytes():
-                    bytes_dl += len(chunk)
-                    fh.write(chunk)
+        return md5
 
-        print_progress(msg='Done downloading')
+    async def move_single_file(self, dl_filename):
+        md5 = hashlib.md5()
+        async with aiofiles.open(dl_filename, 'rb') as part_fh:
+            chunk = await part_fh.read()
+            md5.update(chunk)
+        os.rename(dl_filename, self.pathname)
 
-class ProgressTimer(object):
-    def __init__(self, interval, cb, start = None):
-        self.interval = interval
-        self.start = start
-        self.cb = cb
-
-    def __enter__(self):
-        self.task = asyncio.ensure_future(self._run())
-
-    def __exit__(self, type, value, traceback):
-        self.task.cancel()
-
-    async def _run(self):
-        if self.start is not None:
-            await asyncio.sleep(self.start)
-        else:
-            await asyncio.sleep(self.interval)
-
-        while True:
-            self.cb()
-            await asyncio.sleep(self.interval)
+        return md5

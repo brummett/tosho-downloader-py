@@ -80,12 +80,13 @@ class FileDownloader(Printable):
         self.print('*** There are no more sources for { self.filename }\n')
 
     async def remove_working_files(self, source):
-        async with asyncio.TaskGroup() as tg:
-            for i in range(len(self.sources[source])):
-                dl_filename = '%s.%03d' % ( self.working_pathname, i+1)
-                self.print(f'*** deleting: { dl_filename }\n')
-                tg.create_task(aiofiles.os.unlink(dl_filename))
-                #await aiofiles.unlink(dl_filename)
+        for i in range(len(self.sources[source])):
+            dl_filename = '%s.%03d' % ( self.working_pathname, i+1)
+            self.print(f'*** deleting: { dl_filename }\n')
+            try:
+                await aiofiles.os.unlink(dl_filename)
+            except FileNotFoundError:
+                pass
 
     def is_already_downloaded(self):
         return os.path.exists(self.pathname)

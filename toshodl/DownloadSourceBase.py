@@ -45,10 +45,10 @@ class DownloadSourceBase(HttpClient):
             time_report  = start_time if final else prev_time
 
             kb = bytes_report / 1024
-            mb = kb / 1024
-            k_per_sec = kb / (time.time() - time_report)
+            k_per_sec = bytes_report / 1024 / (time.time() - time_report)
+            mb_dl = bytes_dl / 1048576
             pct = bytes_dl / total_size * 100
-            self.print(f'{msg} {self.filename} %0.2f MB %0.2f KB/s %0.1f%%\n' % ( mb, k_per_sec, pct))
+            self.print(f'{msg} {self.filename} %0.2f MB %0.2f KB/s %0.1f%%\n' % ( mb_dl, k_per_sec, pct))
 
             prev_bytes = bytes_dl
             prev_time = time.time()

@@ -19,7 +19,7 @@ class DownloadSourceBase(HttpClient):
 
     def download(self):
         return self.exception_retry(lambda: self.download_from_url(),
-                                    exception=httpx.ReadTimeout,
+                                    exception=httpx.TransportError,
                                     tries=5)
 
     async def save_stream_response(self, response):

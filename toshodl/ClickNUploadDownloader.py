@@ -116,7 +116,9 @@ class ClickNUploadDownloader(DownloadSourceBase):
         dom = BeautifulSoup(BytesIO(response.content), features='html.parser')
         dl_link = dom.select_one('a.downloadbtn')
         if not dl_link:
-            raise ValueError(f'Could not find download button at {url}')
+            # I don't yet know why this happens.  Print out what we got
+            self.print(f'*** Could not find download button at {url}\n{ response.content }\n\n\n')
+            raise XTryAnotherSource
 
         # This link contains spaces which need to be url-encoded, but only
         # the "path" portion of the url

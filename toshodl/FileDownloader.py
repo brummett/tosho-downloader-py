@@ -64,10 +64,8 @@ class FileDownloader(Printable):
                 piece_tasks = [ ]
                 async with asyncio.TaskGroup() as tg:
                     for idx, link in enumerate(self.sources[source], start=1):
-                        async with FileDownloader.dl_sem:
-                            self.print(f'{ self.filename } part { idx }: { link }\n')
-                            task = tg.create_task(self.download_piece(dl_class, link, idx))
-                            piece_tasks.append(task)
+                        task = tg.create_task(self.download_piece(dl_class, link, idx))
+                        piece_tasks.append(task)
 
                 working_filenames = [ t.result() for t in piece_tasks ]
                 await self.finalize_file(working_filenames)
@@ -94,9 +92,11 @@ class FileDownloader(Printable):
     # Download one piece of a file with the given download class and URL/link
     # Return the working filename
     async def download_piece(self, source_class, link, idx):
-        dl_filename = '%s.%03d' % ( self.working_pathname, idx)
-        dl = source_class(url=link, filename=dl_filename)
-        await dl.download()
+        async with FileDownloader.dl_sem:
+            self.print(f'{ self.filename } part { idx }: { link }\n')
+            dl_filename = '%s.%03d' % ( self.working_pathname, idx)
+            dl = source_class(url=link, filename=dl_filename)
+            await dl.download()
         return dl_filename
 
     # Join the pieces into the final combined file

@@ -20,7 +20,7 @@ class HttpClient(Printable):
             try:
                 rv = await fn()
             except exception as e:
-                self.print(f'*** { self } Caught { e } attempt { i }: { name }\n')
+                self.print(f'*** { self } Caught { type(e) } { e } attempt { i }: { name }\n')
                 if delay and delay > 0:
                     await asyncio.sleep(delay)
                 continue # try again

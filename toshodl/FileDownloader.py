@@ -75,7 +75,7 @@ class FileDownloader(Printable):
                 self.print(f'*** Source { source } gave up on { self.filename }, trying the next one...\n')
                 await self.remove_working_files(source)
 
-        self.print('*** There are no more sources for { self.filename }\n')
+        self.print(f'*** There are no more sources for { self.filename }\n')
 
     async def remove_working_files(self, source):
         for i in range(len(self.sources[source])):

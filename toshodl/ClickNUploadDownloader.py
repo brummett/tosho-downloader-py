@@ -38,7 +38,7 @@ class ClickNUploadDownloader(DownloadSourceBase):
 
         async with ClickNUploadDownloader._serial_lock:
             async with httpx.AsyncClient(verify=False) as no_verify_client:
-                async with no_verify_client.stream('GET', dl_link) as response:
+                async with no_verify_client.stream('GET', dl_link, timeout=15.0) as response:
                     await self.save_stream_response(response)
 
         return

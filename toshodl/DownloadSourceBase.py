@@ -25,8 +25,8 @@ class DownloadSourceBase(HttpClient):
     async def save_stream_response(self, response):
         self.print(f'Trying to download from { response.url }\n')
         if response.status_code != 200:
-            self.print(f"  status code { response.status_code }, exiting")
-            return
+            self.print(f"  status code { response.status_code }, try another source...\n")
+            raise XTryAnotherSource()
         dirname = os.path.dirname(self.filename)
         try:
             os.makedirs(dirname)

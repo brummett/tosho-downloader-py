@@ -109,7 +109,7 @@ class GoFileDownloader(DownloadSourceBase):
             dl_link = v['link']
             break
 
-        self.print(f'Downloading from {url}\n')
+        self.print(f'Downloading from {url} => {dl_link}\n')
         dl_token = await self.dl_token()
 
         dl_headers = {

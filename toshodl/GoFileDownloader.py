@@ -5,6 +5,9 @@ import asyncio
 
 from toshodl.DownloadSourceBase import DownloadSourceBase,XTryAnotherSource
 
+# Originally based on https://github.com/ltsdw/gofile-downloader, but heavily
+# modified since then
+
 class GoFileDownloader(DownloadSourceBase):
     # websiteToken is used in the getContent API endpoint.  They change it from
     # time-to-time, so we extract it from a source file and cache it for the
@@ -113,7 +116,6 @@ class GoFileDownloader(DownloadSourceBase):
         dl_token = await self.dl_token()
 
         dl_headers = {
-            'Authorization':    f'Bearer { dl_token }',
             'Cookie':           f'accountToken={ dl_token }',
             'Accept-Encoding':  'gzip, deflate, br',
             'Accept':           '*/*',

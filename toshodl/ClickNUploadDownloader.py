@@ -9,7 +9,10 @@
 # form params.
 #
 # Also annoying is that sometimes you'll get the 4-digit captcha that we
-# can solve.  Sometimes you get an image-matching captcha that we can't
+# can solve.  Sometimes you get an image-matching captcha that we can't solve
+#
+# Note that AnimeTosho hasn't used ClickNUpload since 4 Aug 2024
+
 from io import BytesIO
 from bs4 import BeautifulSoup
 import asyncio

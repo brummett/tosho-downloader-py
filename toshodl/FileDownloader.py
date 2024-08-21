@@ -23,10 +23,12 @@ from toshodl.DownloadSourceBase import XTryAnotherSource
 from toshodl.KrakenFilesDownloader import KrakenFilesDownloader
 from toshodl.GoFileDownloader import GoFileDownloader
 from toshodl.ClickNUploadDownloader import ClickNUploadDownloader
+from toshodl.DailyUploadsDownloader import DailyUploadsDownloader
 download_classes = {
     'KrakenFiles': KrakenFilesDownloader,
     'GoFile': GoFileDownloader,
     'ClickNUpload': ClickNUploadDownloader,
+    'DailyUploads': DailyUploadsDownloader,
 }
 
 class FileDownloader(Printable):

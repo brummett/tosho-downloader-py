@@ -17,6 +17,9 @@ class DownloadSourceBase(HttpClient):
     def __str__(self):
         return f'download from { self.url }'
 
+    async def download_from_url(self):
+        raise NotImplemented(f'Class { type(self).__name__ } does not implement "download_from_url()"')
+
     def download(self):
         return self.exception_retry(lambda: self.download_from_url(),
                                     exception=httpx.TransportError,

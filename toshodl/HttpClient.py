@@ -20,11 +20,16 @@ class HttpClient(Printable):
             try:
                 rv = await fn()
             except exception as e:
-                self.print(f'*** { self } Caught { type(e) } { e } attempt { i }: { name }\n')
+                self.print(f'*** { self } fn { fn } Caught { type(e) } { e } attempt { i }: { name }\n')
                 if delay and delay > 0:
                     await asyncio.sleep(delay)
+                last_exception = e
                 continue # try again
 
             # if we get here, fn() was successful
             return rv
+
+        # If we get here, we ran out of retries
+        self.print(f'*** ran out of retries, throwing a { type(last_exception) }: { last_exception }\n')
+        raise last_exception from last_exception
 

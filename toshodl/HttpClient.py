@@ -16,7 +16,7 @@ class HttpClient(Printable):
     async def exception_retry(self, fn, exception=httpx.ConnectTimeout, tries=5, delay=5, name=None):
         if name is None:
             name = self.url
-        for i in range(tries-1):
+        for i in range(tries):
             try:
                 rv = await fn()
             except exception as e:

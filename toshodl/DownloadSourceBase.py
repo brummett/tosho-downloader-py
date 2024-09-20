@@ -8,6 +8,10 @@ import os.path
 
 from toshodl.HttpClient import HttpClient
 
+# raised when one source wants to give up and allow another source to try
+class XTryAnotherSource(Exception):
+    pass
+
 class DownloadSourceBase(HttpClient):
     def __init__(self, url, filename, *args, **kwargs):
         self.url = url
@@ -20,10 +24,14 @@ class DownloadSourceBase(HttpClient):
     async def download_from_url(self):
         raise NotImplemented(f'Class { type(self).__name__ } does not implement "download_from_url()"')
 
-    def download(self):
-        return self.exception_retry(lambda: self.download_from_url(),
-                                    exception=httpx.TransportError,
-                                    tries=5)
+    async def download(self):
+        try:
+            return await self.exception_retry(self.download_from_url,
+                                              exception=httpx.TransportError,
+                                              tries=5)
+        except httpx.TransportError:
+            self.print(f'*** Exhausted retries downloading from { self.url }, trying another source...\n')
+            raise XTryAnotherSource
 
     async def save_stream_response(self, response):
         self.print(f'Trying to download from { response.url }\n')
@@ -88,6 +96,3 @@ class ProgressTimer(object):
             self.cb()
             await asyncio.sleep(self.interval)
 
-# raised when one source wants to give up and allow another source to try
-class XTryAnotherSource(Exception):
-    pass

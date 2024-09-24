@@ -14,7 +14,7 @@ class KrakenFilesDownloader(DownloadSourceBase):
         dl_link = await self.get_download_link(response)
 
         if dl_link:
-            async with self.client.stream('GET', dl_link, timeout=15.0) as response:
+            async with self.client.stream('GET', dl_link, timeout=30.0) as response:
                 await self.save_stream_response(response)
 
     async def get_download_link(self, response):

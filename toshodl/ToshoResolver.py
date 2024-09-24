@@ -26,12 +26,16 @@ class ToshoResolver(HttpClient):
                 self.print(f'Got response { response.status_code } for id { self.id }\n')
                 data = response.json()
 
-                # Canonicalize the "links" values so it's always a list, perhaps of even one item
-                for f in data['files']:
-                    links = f.get('links', {})
-                    for k,v in links.items():
-                        if type(v) is not list:
-                            links[k] = [ v ]
+                if data['status'] != 'complete':
+                    self.print(f"Item with id { self.id } is not complete: { data['status'] }\n")
+                    return None
+                else:
+                    # Canonicalize the "links" values so it's always a list, perhaps of even one item
+                    for f in data['files']:
+                        links = f.get('links', {})
+                        for k,v in links.items():
+                            if type(v) is not list:
+                                links[k] = [ v ]
             except httpx.ConnectTimeout:
                 self.print(f'*** Timeout getting id { self.id } from tosho\n')
                 continue

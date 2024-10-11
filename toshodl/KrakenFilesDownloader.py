@@ -23,9 +23,13 @@ class KrakenFilesDownloader(DownloadSourceBase):
         # There's a form with a download button inside.  Submit the form and get
         # back a bit of JSON with a URL of the file\
 
-        form = dom.select_one('#dl-form')
-        dl_token = form.select_one('#dl-token').get('value') # hidden input
-        file_hash = dom.select_one('div[data-file-hash]').get('data-file-hash')
+        try:
+            form = dom.select_one('#dl-form')
+            dl_token = form.select_one('#dl-token').get('value') # hidden input
+            file_hash = dom.select_one('div[data-file-hash]').get('data-file-hash')
+        except Exception as e:
+            self.print(f"*** Can't parse dl-form at { self.url }: { e }\n")
+            raise XTryAnotherSource
 
         form_action = urljoin(self.url, form.get('action'))
 

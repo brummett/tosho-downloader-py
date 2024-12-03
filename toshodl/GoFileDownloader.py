@@ -18,12 +18,12 @@ class GoFileDownloader(DownloadSourceBase):
     async def website_token(self):
         async with GoFileDownloader._website_token_lock:
             if GoFileDownloader._website_token is None:
-                response = await self.exception_retry(lambda: self.client.get('https://gofile.io/dist/js/alljs.js'), name='GoFile alljs.js')
+                response = await self.exception_retry(lambda: self.client.get('https://gofile.io/dist/js/global.js'), name='GoFile global.js')
                 js_code = response.text
 
                 # The code contains a line that looks like:
-                # var fetchData = { wt: "4fd6sg89d7s6" }; // Move wt to URL query
-                match = re.search(r'fetchData = { wt: "([^"]+)"', js_code)
+                # appdata.wt = "abcdef123456"
+                match = re.search(r'appdata.wt\s+=\s+"([^"]+)"', js_code)
                 if match:
                     GoFileDownloader._website_token = match[1]
                     self.print(f'GoFile website_token { GoFileDownloader._website_token }\n')

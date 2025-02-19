@@ -68,7 +68,7 @@ class DownloadSourceBase(HttpClient):
             with ProgressTimer(start=10, interval=30, cb=print_progress) as t:
                 # We'll get a httpx.ReadTimeout if there's a download timeout
                 # which will get caught in the exeption_retry() of download()
-                async for chunk in response.aiter_bytes():
+                async for chunk in response.aiter_bytes(chunk_size=65536):
                     bytes_dl += len(chunk)
                     await fh.write(chunk)
 

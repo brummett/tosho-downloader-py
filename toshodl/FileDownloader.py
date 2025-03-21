@@ -24,9 +24,12 @@ from toshodl.KrakenFilesDownloader import KrakenFilesDownloader
 from toshodl.GoFileDownloader import GoFileDownloader
 from toshodl.ClickNUploadDownloader import ClickNUploadDownloader
 from toshodl.DailyUploadsDownloader import DailyUploadsDownloader
+from toshodl.BuzzHeavierDownloader import BuzzHeavierDownloader
+
 download_classes = {
     'KrakenFiles': KrakenFilesDownloader,
     'GoFile': GoFileDownloader,
+    'BuzzHeavier': BuzzHeavierDownloader,
     'ClickNUpload': ClickNUploadDownloader,
     'DailyUploads': DailyUploadsDownloader,
 }

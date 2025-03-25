@@ -19,20 +19,41 @@ class KrakenFilesDownloader(DownloadSourceBase):
         self.print(f"Attempting DL from { self.url }\n")
         async with async_playwright() as p:
             browser = await p.firefox.launch()
-            page = await browser.new_page()
-            await page.goto(self.url)
-            self.print(f"Loaded { self.url }\n")
+            ctx = await browser.new_context()
+            page = await ctx.new_page()
 
+            # Their ad stuff often redirects to a sponsor page the first
+            # time, then gets to the right place on the second attempt,
+            # but give it 5 attempt just because.  Note that it is _not_
+            # opening new pages/tabs.
+            i = 0
+            while i < 5 and page.url != self.url:
+                i += 1
+                self.print(f"Navigating to { self.url }\n")
+                await page.goto(self.url)
+                self.print(f"Nav result { self.url } => { page.url }\n")
+                self.print(f"ctx has { len(ctx.pages) } pages\n")
+            if page.url != self.url:
+                raise XTryAnotherSource
+
+            self.print(f"Loaded { self.url }\n")
             form = page.locator('#dl-form')
             dl_button = form.locator('button[type="submit"]')
 
-            async with page.expect_download() as download_info:
-                await dl_button.click()
-                self.print(f"Clicked download for { self.url }\n")
+            try:
+                async with page.expect_download() as download_info:
+                    await dl_button.click()
+            except Exception as e:
+                self.print(f"*** Caught { type(e) }\n")
+                self.print(f"*** exception { e }\n")
+                self.print(f"after clicking download at { page.url }\n")
+                await asyncio.sleep(5)
+                raise e
+            self.print(f"Clicked download for { self.url }\n")
 
             download = await download_info.value
             dl_url = download.url
             await download.cancel()
-            await page.close()
+            await ctx.close()
 
         return dl_url

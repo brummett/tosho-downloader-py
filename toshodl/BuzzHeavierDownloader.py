@@ -2,7 +2,7 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-from toshodl.DownloadSourceBase import DownloadSourceBase
+from toshodl.DownloadSourceBase import DownloadSourceBase, XTryAnotherSource
 
 class BuzzHeavierDownloader(DownloadSourceBase):
 
@@ -27,6 +27,10 @@ class BuzzHeavierDownloader(DownloadSourceBase):
         # the DL links are one-time-only use
 
         link = dom.select_one('a.link-button')
+        if not link:
+            self.print('did not find download link at { self.url }')
+            raise XTryAnotherSource()
+
         #self.print(f"Found link { link }\n")
         link_url = urljoin(self.url, link.get('hx-get'))
         #self.print(f"link url { link_url }\n")

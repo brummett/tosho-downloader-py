@@ -18,7 +18,7 @@ class GoFileDownloader(DownloadSourceBase):
     async def website_token(self):
         async with GoFileDownloader._website_token_lock:
             if GoFileDownloader._website_token is None:
-                response = await self.exception_retry(lambda: self.client.get('https://gofile.io/dist/js/global.js'), name='GoFile global.js')
+                response = await self.exception_retry(lambda: self.client.get('https://gofile.io/dist/js/config.js'), name='GoFile config.js')
                 js_code = response.text
 
                 # The code contains a line that looks like:
@@ -65,11 +65,11 @@ class GoFileDownloader(DownloadSourceBase):
         file_id = os.path.basename(uri.path)
 
         website_token = await self.website_token()
-        url = f'https://api.gofile.io/contents/{file_id}?wt={website_token}'
-        print(f'{self.url} => {url}')
+        url = f'https://api.gofile.io/contents/{ file_id }'
+        self.print(f"{self.url} => {url}\n")
 
         dl_token = await self.dl_token()
-        response = await self.exception_retry(lambda: self.client.get(url, headers={ 'Authorization': f'Bearer { dl_token }'}))
+        response = await self.exception_retry(lambda: self.client.get(url, headers={ 'Authorization': f'Bearer { dl_token }', 'X-Website-Token': website_token }))
         json = response.json()
         # { data => {
         #       childrenIds => [2c5d5a3c-8d58-4256-a774-13a72691959a],

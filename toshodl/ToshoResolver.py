@@ -8,6 +8,8 @@ from toshodl.Printable import Printable
 from toshodl.FileDownloader import FileDownloader
 from toshodl.HttpClient import HttpClient
 
+complete_statuses = ['complete', 'complete_partial']
+
 class ToshoResolver(HttpClient):
     base_url = 'https://feed.animetosho.org/json'
 
@@ -26,7 +28,7 @@ class ToshoResolver(HttpClient):
                 self.print(f'Got response { response.status_code } for id { self.id }\n')
                 data = response.json()
 
-                if data['status'] != 'complete':
+                if data['status'] not in complete_statuses:
                     self.print(f"Item with id { self.id } is not complete: { data['status'] }\n")
                     return None
                 else:

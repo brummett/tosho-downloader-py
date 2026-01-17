@@ -12,6 +12,10 @@ from toshodl.HttpClient import HttpClient
 class XTryAnotherSource(Exception):
     pass
 
+# raised when a source encountered a retriable error
+class XTryThisSourceAgain(Exception):
+    pass
+
 class DownloadSourceBase(HttpClient):
     def __init__(self, url, filename, *args, **kwargs):
         self.url = url
@@ -27,7 +31,7 @@ class DownloadSourceBase(HttpClient):
     async def download(self):
         try:
             return await self.exception_retry(self.download_from_url,
-                                              exception=httpx.TransportError,
+                                              exception=(httpx.TransportError, XTryThisSourceAgain),
                                               tries=5)
         except httpx.TransportError:
             self.print(f'*** Exhausted retries downloading from { self.url }, trying another source...\n')

@@ -2,7 +2,7 @@ from io import BytesIO
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
-from toshodl.DownloadSourceBase import DownloadSourceBase, XTryAnotherSource
+from toshodl.DownloadSourceBase import DownloadSourceBase, XTryAnotherSource, XTryThisSourceAgain
 
 class BuzzHeavierDownloader(DownloadSourceBase):
 
@@ -12,6 +12,10 @@ class BuzzHeavierDownloader(DownloadSourceBase):
 
         if dl_link:
             async with self.client.stream('GET', dl_link, timeout=30.0) as response:
+                if response.status_code == 500:
+                    # Sometimes trying again will work
+                    self.print('Got 500 response from BuzzHeavier, will try again')
+                    raise XTryThisSourceAgain()
                 await self.save_stream_response(response)
 
     async def get_download_link(self, response):

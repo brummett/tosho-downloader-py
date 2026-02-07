@@ -33,7 +33,7 @@ class DownloadSourceBase(HttpClient):
             return await self.exception_retry(self.download_from_url,
                                               exception=(httpx.TransportError, XTryThisSourceAgain),
                                               tries=5)
-        except httpx.TransportError:
+        except (httpx.TransportError, XTryThisSourceAgain):
             self.print(f'*** Exhausted retries downloading from { self.url }, trying another source...\n')
             raise XTryAnotherSource
 

@@ -69,8 +69,17 @@ class GoFileDownloader(DownloadSourceBase):
         self.print(f"{self.url} => {url}\n")
 
         dl_token = await self.dl_token()
-        response = await self.exception_retry(lambda: self.client.get(url, headers={ 'Authorization': f'Bearer { dl_token }', 'X-Website-Token': website_token }))
-        json = response.json()
+        async def get_json_rsp():
+            response = await self.client.get(
+                                url,
+                                timeout=20.0,
+                                headers={
+                                    'Authorization': f'Bearer { dl_token }',
+                                    'X-Website-Token': website_token,
+                                })
+            return response.json()
+        json = await self.exception_retry(get_json_rsp)
+
         # { data => {
         #       childrenIds => [2c5d5a3c-8d58-4256-a774-13a72691959a],
         #       code => fQKBdZ,

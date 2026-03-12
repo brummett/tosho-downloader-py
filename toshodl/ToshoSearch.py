@@ -58,6 +58,7 @@ class ToshoSearch(Printable):
     async def load_one_page_of_results(self, page = 0):
         self.print(f'Updating feed page {page}\n')
 
+        response = None
         for retries in range(3):
             try:
                 if page == 0:
@@ -70,9 +71,10 @@ class ToshoSearch(Printable):
                 logger.warn("Timout getting feed page from animetosho")
                 continue
 
-        for item in response.json():
-            self.cache[ item['title'] ] = item['id']
-            logger.debug('Got >>%s<< id %s', item['title'], item['id'])
+        if response:
+            for item in response.json():
+                self.cache[ item['title'] ] = item['id']
+                logger.debug('Got >>%s<< id %s', item['title'], item['id'])
 
     async def search_tosho(self, key):
         self.print(f'Searching for {key}\n')

@@ -82,10 +82,14 @@ class ToshoSearch(Printable):
         for retries in range(3):
             try:
                 response = await self.client.get('json', params={'q': key})
+                items = response.json()
                 break
             except httpx.ConnectTimeout:
                 logger.warn("Timout getting search results from animetosho")
                 continue
-        for item in response.json():
+            except json.decoder.JSONDecodeError:
+                logger.warn(f"Problem decoding json response: { reponse.text }")
+                continue
+        for item in items:
             #logger.debug('Got >>%s<< id %s', item['title'], item['id'])
             self.cache[ item['title'] ] = item['id']

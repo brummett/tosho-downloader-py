@@ -2,6 +2,8 @@ from urllib.parse import urlparse
 import os.path
 import re
 import asyncio
+import hashlib
+from time import time
 
 from toshodl.DownloadSourceBase import DownloadSourceBase,XTryAnotherSource
 
@@ -15,22 +17,14 @@ class GoFileDownloader(DownloadSourceBase):
     # Make access to this serialized
     _website_token_lock = asyncio.Lock()
     _website_token = None
-    async def website_token(self):
-        async with GoFileDownloader._website_token_lock:
-            if GoFileDownloader._website_token is None:
-                response = await self.exception_retry(lambda: self.client.get('https://gofile.io/dist/js/config.js'), name='GoFile config.js')
-                js_code = response.text
+    def generate_website_token(self, dl_token):
+        website_token_magic = '12af056dacea0b'
+        user_agent = self.client.headers.get('User-Agent')
+        self.print(f'generate_website_token() auth_header: { self.client.headers.get("Authorization") }\n"')
+        time_slot = int(time()) // 14400
+        raw_token = f'{ user_agent }::en-US::{ dl_token }::{ time_slot }::{ website_token_magic }'
+        return hashlib.sha256(raw_token.encode()).hexdigest()
 
-                # The code contains a line that looks like:
-                # appdata.wt = "abcdef123456"
-                match = re.search(r'appdata.wt\s+=\s+"([^"]+)"', js_code)
-                if match:
-                    GoFileDownloader._website_token = match[1]
-                    self.print(f'GoFile website_token { GoFileDownloader._website_token }\n')
-                else:
-                    raise ValueError('Could not find website token')
-
-        return GoFileDownloader._website_token
 
     # A user/session token.  I don't know how long these anonymous users last,
     # but it seems to be long enough that we can create one when we first
@@ -43,7 +37,13 @@ class GoFileDownloader(DownloadSourceBase):
     async def dl_token(self):
         async with GoFileDownloader._dl_token_lock:
             if GoFileDownloader._dl_token is None:
-                response = await self.exception_retry(lambda: self.client.post('https://api.gofile.io/accounts'), name='GoFile accounts')
+                wt = self.generate_website_token('')
+                headers = {
+                    'X-Website-Token': wt,
+                    'X-BL': 'en-US',
+                }
+                response = await self.exception_retry(lambda: self.client.post('https://api.gofile.io/accounts', headers=headers ), name='GoFile accounts')
+                self.print(f'dl_token response: { response.text }\n')
                 json_data = response.json()
                 # looks like: {data => {token => 0eoxBkYGFYmHZ43mxkJpY2vWLeCYW5SV}, status => ok}
                 if 'data' in json_data and 'token' in json_data['data']:
@@ -64,11 +64,11 @@ class GoFileDownloader(DownloadSourceBase):
         uri = urlparse(self.url)
         file_id = os.path.basename(uri.path)
 
-        website_token = await self.website_token()
         url = f'https://api.gofile.io/contents/{ file_id }'
         self.print(f"{self.url} => {url}\n")
 
         dl_token = await self.dl_token()
+        website_token = self.generate_website_token(dl_token)
         async def get_json_rsp():
             response = await self.client.get(
                                 url,
@@ -76,6 +76,7 @@ class GoFileDownloader(DownloadSourceBase):
                                 headers={
                                     'Authorization': f'Bearer { dl_token }',
                                     'X-Website-Token': website_token,
+                                    'X-BL': 'en-US',
                                 })
             return response.json()
         json = await self.exception_retry(get_json_rsp)

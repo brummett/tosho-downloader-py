@@ -26,7 +26,7 @@ from toshodl.BuzzHeavierDownloader import BuzzHeavierDownloader
 
 download_classes = {
     #'KrakenFiles': KrakenFilesDownloader,
-    'GoFile': GoFileDownloader,
+    'gofile': GoFileDownloader,
     'BuzzHeavier': BuzzHeavierDownloader,
 }
 
@@ -112,7 +112,7 @@ class FileDownloader(Printable):
             self.print(f'{ self.pathname } is just one part\n')
             md5 = await self.move_single_file(working_filenames[0])
 
-        if md5.hexdigest() != self.md5:
+        if md5.hexdigest().lower() != self.md5.lower():
             self.print(f'*** { self.pathname } md5 differs!\n    Got      { md5.hexdigest() }\n    Expected { self.md5 }\n')
             dirname = os.path.dirname(self.pathname)
             orig_filename = os.path.basename(self.pathname)

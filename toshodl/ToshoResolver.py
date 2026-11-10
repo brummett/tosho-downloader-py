@@ -11,7 +11,7 @@ from toshodl.HttpClient import HttpClient
 complete_statuses = ['complete', 'complete_partial']
 
 class ToshoResolver(HttpClient):
-    base_url = 'https://feed.animetosho.org/json'
+    base_url = 'https://feed.animetosho.net/json'
 
     def __init__(self, id, *args, **kwargs):
         super().__init__(*args, **kwargs)

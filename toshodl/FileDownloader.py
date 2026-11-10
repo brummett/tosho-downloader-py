@@ -25,9 +25,8 @@ from toshodl.GoFileDownloader import GoFileDownloader
 from toshodl.BuzzHeavierDownloader import BuzzHeavierDownloader
 
 download_classes = {
-    #'KrakenFiles': KrakenFilesDownloader,
     'gofile': GoFileDownloader,
-    'BuzzHeavier': BuzzHeavierDownloader,
+    #'buzzheavier': BuzzHeavierDownloader,  # They use Cloudflare to require an actual browser
 }
 
 class FileDownloader(Printable):

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 class ToshoSearch(Printable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.client = httpx.AsyncClient(base_url='https://feed.animetosho.org')
+        self.client = httpx.AsyncClient(base_url='https://feed.animetosho.net')
         self.cache = { }
 
     async def search(self, key):

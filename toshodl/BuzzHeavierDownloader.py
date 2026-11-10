@@ -30,7 +30,7 @@ class BuzzHeavierDownloader(DownloadSourceBase):
         # Do a get() on that url (maybe without the ?v=...) to download.  It seems that
         # the DL links are one-time-only use
 
-        link = dom.select_one('a.link-button')
+        link = dom.select_one('a.download-btn')
         if not link:
             self.print('did not find download link at { self.url }')
             raise XTryAnotherSource()
